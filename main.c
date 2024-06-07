@@ -16,7 +16,7 @@ volatile uint8_t user_flags = 0x00;
 
 /****************************** function**********************************/
 void send_USART1_STR(char *sendbuffer1){
-  while(USART1->CR1 & USART_CR1_TCIE){}
+  while((USART1->SR & USART_SR_TC) == 0){}
   pt_buffer1 = &(*sendbuffer1);
   USART1->CR1 &= ~(USART_CR1_RXNEIE);
   USART1->DR = (*pt_buffer1 & (uint16_t)0x01FF);
@@ -24,20 +24,14 @@ void send_USART1_STR(char *sendbuffer1){
 }
 
 void send_USART3_STR(char *sendbuffer3){
-  while(USART1->CR1 & USART_CR1_TCIE){}
+  while((USART3->SR & USART_SR_TC) == 0){}
   pt_buffer3 = &(*sendbuffer3);
   USART3->CR1 &= ~(USART_CR1_RXNEIE);
+  EXTI->IMR &= ~(EXTI_IMR_IM10);
   USART3->DR = (*pt_buffer3 & (uint16_t)0x01FF);
   USART3->CR1 |= USART_CR1_TCIE;
 }
 
-void send_USART6_STR(char *sendbuffer6){
-  while(USART1->CR1 & USART_CR1_TCIE){}
-  pt_buffer6 = &(*sendbuffer6);
-  USART6->CR1 &= ~(USART_CR1_RXNEIE);
-  USART6->DR = (*pt_buffer6 & (uint16_t)0x01FF);
-  USART6->CR1 |= USART_CR1_TCIE;
-}
 /*********************************main************************************/
 int main(void) {
   //Values initial
@@ -167,6 +161,7 @@ void USART3_IRQHandler(void){
   if(USART3->SR & USART_SR_TC){
     if(*pt_buffer3 == '\n'){
       USART3->CR1 &= ~(USART_CR1_TCIE);
+      EXTI->IMR |= EXTI_IMR_IM10;
       USART3->CR1 |= USART_CR1_RXNEIE;
     }else{
       USART3->DR = (*++pt_buffer3 & (uint16_t)0x01FF);
